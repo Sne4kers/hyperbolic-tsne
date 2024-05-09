@@ -11,7 +11,10 @@
 class InfinityQuadTree {
 public: 
     InfinityQuadTree(std::vector<Point>& points) {
+        std::cout.precision(12);
+        std::cout << "BEGIN BUILDING" << std::endl;
         rec_build_tree(points.begin(), points.end(), Point{-1, -1}, Point{1, 1}, 0);
+        std::cout << "END BUILDING" << std::endl;
     }
     InfinityQuadTree() {}
 
@@ -31,6 +34,12 @@ private:
 
         Point bb_center{(max_bounds.x + min_bounds.x) / 2, (max_bounds.y + min_bounds.y) / 2};
 
+        size_t to_be_used = end_points - begin_points;
+        // std::cout << "IN " << to_be_used << std::endl;
+        // std::cout << "POINT " << (*begin_points).x << " " << (*begin_points).y << std::endl;
+        // std::cout  << "MIN "<< min_bounds.x << " " << min_bounds.y<< std::endl;
+        // std::cout  << "MAX "<< max_bounds.x << " " << max_bounds.y<< std::endl;
+
         // If only 1 point left - it's a leaf
         if (begin_points + 1 == end_points) {
             // Unless the square is not within a unit circle completely
@@ -40,11 +49,13 @@ private:
 
                 _nodes[result_idx].is_leaf = true;
                 _nodes[result_idx].lorentz_factor = hyperbolic_utils::lorentz_factor((*begin_points).to_klein().sq_norm()); 
-                _nodes[result_idx].barycenter = (*begin_points);
+                _nodes[result_idx].barycenter = Point{(*begin_points).x, (*begin_points).y};
                 _nodes[result_idx].cumulative_size = 1;
+                // std::cout << "OUT " << to_be_used << std::endl;
                 return result_idx;
             }
         }
+
         // Split the points based on their location
         auto split_y = std::partition(begin_points, end_points, [bb_center](Point a){ return a.y < bb_center.y; });
         auto split_x_lower = std::partition(begin_points, split_y, [bb_center](Point a){ return a.x < bb_center.x; });
@@ -58,6 +69,7 @@ private:
     
         size_t only_child = std::max(std::max(child0_idx, child1_idx), std::max(child2_idx, child3_idx));
         if (child0_idx + child1_idx + child2_idx + child3_idx == only_child) {
+            // std::cout << "OUT " << to_be_used << std::endl;
             return only_child;
         }
 
@@ -75,15 +87,17 @@ private:
             + (child2_idx == 0 ? 0 : _nodes[child2_idx].lorentz_factor)
             + (child3_idx == 0 ? 0 : _nodes[child3_idx].lorentz_factor);
 
-        Point new_barycenter_klein = ((child0_idx == 0 ? Point{0, 0} : _nodes[child0_idx].barycenter.to_klein() * _nodes[child0_idx].lorentz_factor)
-            + (child1_idx == 0 ? Point{0, 0} : _nodes[child1_idx].barycenter.to_klein() * _nodes[child1_idx].lorentz_factor)
-            + (child2_idx == 0 ? Point{0, 0} : _nodes[child2_idx].barycenter.to_klein() * _nodes[child2_idx].lorentz_factor)
-            + (child3_idx == 0 ? Point{0, 0} : _nodes[child3_idx].barycenter.to_klein() * _nodes[child3_idx].lorentz_factor)) / new_lorentz_factor;
+        Point new_barycenter_klein = ((child0_idx == 0 ? Point{0, 0} : (_nodes[child0_idx].barycenter.to_klein() * _nodes[child0_idx].lorentz_factor))
+            + (child1_idx == 0 ? Point{0, 0} : (_nodes[child1_idx].barycenter.to_klein() * _nodes[child1_idx].lorentz_factor))
+            + (child2_idx == 0 ? Point{0, 0} : (_nodes[child2_idx].barycenter.to_klein() * _nodes[child2_idx].lorentz_factor))
+            + (child3_idx == 0 ? Point{0, 0} : (_nodes[child3_idx].barycenter.to_klein() * _nodes[child3_idx].lorentz_factor))) / new_lorentz_factor;
 
         _nodes[result_idx].barycenter = new_barycenter_klein.to_poincare();
         _nodes[result_idx].lorentz_factor = new_lorentz_factor;
-        _nodes[result_idx].cumulative_size = end_points - begin_points;
-
+        // if(new_lorentz_factor < 1e-5)
+        //     std::cout << "ALERT" << std::endl;
+        _nodes[result_idx].cumulative_size = to_be_used;
+        // std::cout << "OUT " << to_be_used << std::endl;
         return result_idx;
     }
 
@@ -99,13 +113,13 @@ private:
 
         double distance_to_target = target.distance_to_point_poincare(_nodes[cell_idx].barycenter);
         double distance_squared = distance_to_target * distance_to_target;
-        combined_results[cell_idx * 4 + 2] = distance_squared;
+        combined_results[cell_idx * 4 + 2] = distance_to_target;
 
         // Check the stop condition
         if (_nodes[cell_idx].is_leaf || (!current_cell.contains_infinity && (current_cell.max_distance_within_squared / distance_squared < theta_sq))) {
             combined_results[cell_idx*4] = _nodes[cell_idx].barycenter.x;
             combined_results[cell_idx*4 + 1] = _nodes[cell_idx].barycenter.y;
-            combined_results[cell_idx*4 + 2] = distance_squared;
+            combined_results[cell_idx*4 + 2] = distance_to_target;
             combined_results[cell_idx*4 + 3] = _nodes[cell_idx].cumulative_size;
             return idx + 4;
         }

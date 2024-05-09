@@ -1208,12 +1208,10 @@ cdef double compute_gradient_negative(double[:, :] pos_reference,
         long dta = 0
         long dtb = 0
         double size
-        double dist2s, mult
+        double dist_not_squared, mult
         double qijZ, sum_Q = 0.0
-        double* force
-        double* summary
-        double* pos
-        double* neg_force
+        double neg_force_x
+        double neg_force_y
         int n_centers 
         int center_of_mass_idx
         CenterOfMass center_of_mass
@@ -1222,74 +1220,49 @@ cdef double compute_gradient_negative(double[:, :] pos_reference,
     with nogil, parallel(num_threads=num_threads):
         # Define thread-local buffers
         summary = <double *> malloc(sizeof(double) * n * offset)
-        force = <double *> malloc(sizeof(double) * n_dimensions)
-        pos = <double *> malloc(sizeof(double) * n_dimensions)
-        neg_force = <double *> malloc(sizeof(double) * n_dimensions)
-
         for i in prange(start, stop, schedule='static'):
             # Clear the arrays
-            for ax in range(n_dimensions):
-                force[ax] = 0.0
-                neg_force[ax] = 0.0
-                pos[ax] = pos_reference[i, ax]
+            neg_f[(i << 1)] = 0.0
+            neg_f[(i << 1) + 1] = 0.0
+                
 
             # Find which nodes are summarizing and collect their centers of mass
-            # deltas, and sizes, into vectorized arrays
-            t1 = clock()
-            #idx = qt.summarize(pos, summary, theta*theta)
 
             idx = iqt.approximate_centers_of_mass(pos_reference[i, 0], pos_reference[i, 1], theta*theta, summary)
 
-            t2 = clock()
-
-            # Compute the t-SNE negative force
-            # for the digits dataset, walking the tree
-            # is about 10-15x more expensive than the
-            # following for loop
             for j in range(idx // 4):
-                dist2s = summary[j * offset + n_dimensions]
-                size = summary[j * offset + n_dimensions + 1]
-                qijZ = 1. / (1. + dist2s)  # 1/(1+dist)
-
-                # if size > 1:
-                #     printf("[QuadTree] Size: %g, %g\n", dist2s, dist2s * size / dist2s)
+                dist_not_squared = summary[(j << 2) + 2]
+                size = summary[(j << 2) + 2 + 1]
+                qijZ = 1. / (1. + dist_not_squared * dist_not_squared)  
 
                 sum_Q += size * qijZ   # size of the node * q
 
                 if GRAD_FIX:
                     # New Fix
-                    mult = size * qijZ * qijZ * sqrt(dist2s)
+                    mult = size * qijZ * qijZ * dist_not_squared
                 else:
                     # Old Solution
                     mult = size * qijZ * qijZ
 
-                for ax in range(n_dimensions):
-                    neg_force[ax] += mult * summary[j * offset + ax]
+                neg_f[(i << 1)] += mult * distance_grad(pos_reference[i, 0], pos_reference[i, 1], summary[(j << 2) + 0], summary[(j << 2) + 1], 0)
+                neg_f[(i << 1) + 1] += mult * distance_grad(pos_reference[i, 0], pos_reference[i, 1], summary[(j << 2) + 0], summary[(j << 2) + 1], 1)
 
-                neg_force[0] += mult * distance_grad(pos_reference[i, 0], pos_reference[i, 1], summary[j * 4 + 0], summary[j * 4 + 1], 0)
-                neg_force[1] += mult * distance_grad(pos_reference[i, 0], pos_reference[i, 1], summary[j * 4 + 0], summary[j * 4 + 1], 1)
-
-            for ax in range(2):
-                neg_f[i * n_dimensions + ax] = neg_force[ax]
             
             # t3 = clock()
 
             # dta += t2 - t1
             # dtb += t3 - t2
 
-        free(force)
-        free(pos)
-        free(neg_force)
         free(summary)
 
         #printf("[t-SNE] Tree: %li clock ticks | ", dta)
         #printf("Force computation: %li clock ticks\n", dtb)
-        printf("neg_f[0] %f\n", neg_f[0])
-        printf("neg_f[1] %f\n", neg_f[1])
+        # printf("neg_f[0] %f\n", neg_f[0])
+        # printf("neg_f[1] %f\n", neg_f[1])
 
     # Put sum_Q to machine EPSILON to avoid divisions by 0
     sum_Q = max(sum_Q, FLOAT64_EPS)
-    printf("END\n")
+    printf("SUM_Q: %f", sum_Q)
     return sum_Q
 
 def gradient(float[:] timings,
@@ -1332,16 +1305,19 @@ def gradient(float[:] timings,
         # Port points into a vector
         iqt_initialization = vector[Point](0)
         for i in range(n_samples):
+            # Add a clamp to not destroy a tree
+            # if i == 0:
+            #     print("PRE", pos_output[i, 0], pos_output[i, 1])
             a = sqrt(pos_output[i, 0] * pos_output[i, 0] + pos_output[i, 1] * pos_output[i, 1])
             b = atan2(pos_output[i, 1], pos_output[i, 0])
-            b = b if b > 0 else b + 2 * M_PI
+            a = clamp(a, 0, BOUNDARY) #  BOUNDARY = 1 - EPSILON = 1 - 1e-5
+            pos_output[i, 0] = a * cos(b)
+            pos_output[i, 1] = a * sin(b)
+            iqt_initialization.push_back(Point(pos_output[i, 0], pos_output[i, 1]))
+            # if i == 0:
+            #     print("POST", iqt_initialization.back().x, iqt_initialization.back().y)
 
-            a = clamp(a, 0.0, 1 - BOUNDARY)
-            iqt_initialization.push_back(Point(a * cos(b), a*sin(b)))
-
-        printf("STARTED BUILDING\n")
         infinity_qt = InfinityQuadTree(iqt_initialization)
-        printf("FINISHED BUILDING\n")
 
         if TAKE_TIMING:
             t2 = clock()
