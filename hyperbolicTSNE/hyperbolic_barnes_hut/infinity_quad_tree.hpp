@@ -11,10 +11,10 @@
 class InfinityQuadTree {
 public: 
     InfinityQuadTree(std::vector<Point>& points) {
-        std::cout.precision(12);
-        std::cout << "BEGIN BUILDING" << std::endl;
+        //std::cout.precision(12);
+        //std::cout << "BEGIN BUILDING" << std::endl;
         rec_build_tree(points.begin(), points.end(), Point{-1, -1}, Point{1, 1}, 0);
-        std::cout << "END BUILDING" << std::endl;
+        //std::cout << "END BUILDING" << std::endl;
     }
     InfinityQuadTree() {}
 
@@ -23,7 +23,7 @@ public:
     }
 
     size_t approximate_centers_of_mass(const double& x, const double& y, const double& theta_sq, double* combined_results) const {
-        return approximate_centers_of_mass(Point{x,y}, 0, theta_sq, combined_results, 0);
+        return approximate_centers_of_mass(Point{x,y}, _nodes.size() - 1, theta_sq, combined_results, 0);
         // std::cout << combined_results.size() << std::endl;
     }
 
@@ -87,9 +87,26 @@ private:
             + (child2_idx == -1 ? Point{0, 0} : (_nodes[child2_idx].barycenter.to_klein() * _nodes[child2_idx].lorentz_factor))
             + (child3_idx == -1 ? Point{0, 0} : (_nodes[child3_idx].barycenter.to_klein() * _nodes[child3_idx].lorentz_factor))) / new_lorentz_factor;
 
+        /*
+
+        double new_lorentz_factor = 0;
+        double temp_lorentz_factor;
+        Point new_barycenter_klein = Point{0, 0};
+        for(auto it = begin_points; it < end_points; ++it) {
+            std::cout << "-------\n";
+            std::cout << (*it).x << " " << (*it).y << std::endl;
+            temp_lorentz_factor = hyperbolic_utils::lorentz_factor((*it).to_klein().sq_norm());
+            std::cout << (*it).x << " " << (*it).y << std::endl;
+            new_barycenter_klein = new_barycenter_klein + (*it).to_klein() * temp_lorentz_factor;
+            std::cout << (*it).x << " " << (*it).y << std::endl;
+            new_lorentz_factor += new_lorentz_factor;
+        }
+        */
+
         _nodes[result_idx].barycenter = new_barycenter_klein.to_poincare();
         _nodes[result_idx].lorentz_factor = new_lorentz_factor;
         _nodes[result_idx].cumulative_size = to_be_used;
+        _nodes[result_idx].is_leaf = false;
         return result_idx;
     }
 
@@ -97,30 +114,35 @@ private:
         return hyperbolic_utils::isBoxWithinUnitCircle(min_bounds.x, min_bounds.y, max_bounds.x, max_bounds.y);
     }
 
-    size_t approximate_centers_of_mass(const Point& target, size_t cell_idx, double theta_sq, double* combined_results, size_t idx) const {
+    size_t approximate_centers_of_mass(const Point& target, int cell_idx, double theta_sq, double* combined_results, size_t idx) const {
         auto& current_cell = _nodes[cell_idx];
+        //std::cout << "cell_idx " << cell_idx << " idx " << idx << std::endl;
 
         if (current_cell.is_leaf && std::fabs(target.x - current_cell.barycenter.x) < 1e-5 && std::fabs(target.y - current_cell.barycenter.y) < 1e-5) 
             return idx;
+        
 
-        double distance_to_target = target.distance_to_point_poincare(_nodes[cell_idx].barycenter);
+        //std::cout << "HERE 1";
+        double distance_to_target = target.distance_to_point_poincare(current_cell.barycenter);
         double distance_squared = distance_to_target * distance_to_target;
-        combined_results[cell_idx * 4 + 2] = distance_to_target;
+        combined_results[idx + 2] = distance_to_target;
 
+        //std::cout << "GOT TO HERE" << std::endl;
         // Check the stop condition
-        if (_nodes[cell_idx].is_leaf || (!current_cell.contains_infinity && (current_cell.max_distance_within_squared / distance_squared < theta_sq))) {
-            combined_results[cell_idx*4] = _nodes[cell_idx].barycenter.x;
-            combined_results[cell_idx*4 + 1] = _nodes[cell_idx].barycenter.y;
-            combined_results[cell_idx*4 + 2] = distance_to_target;
-            combined_results[cell_idx*4 + 3] = _nodes[cell_idx].cumulative_size;
+        if (current_cell.is_leaf || (!current_cell.contains_infinity && (current_cell.max_distance_within_squared / distance_squared < theta_sq))) {
+            combined_results[idx] = current_cell.barycenter.x;
+            combined_results[idx + 1] = current_cell.barycenter.y;
+            combined_results[idx + 2] = distance_to_target;
+            combined_results[idx + 3] = current_cell.cumulative_size;
             return idx + 4;
         }
-        
-        combined_results[cell_idx*4 + 3] = 0;
+        //std::cout << "LEFT" << std::endl;
+        combined_results[idx + 3] = 0;
         // If stop condition wasn't triggered - go deeper and combine results
         for(int i = 0; i < 4; ++i) {
-            if (_nodes[cell_idx].children_idx[i] != -1) {
-                idx = approximate_centers_of_mass(target, _nodes[cell_idx].children_idx[i], theta_sq, combined_results, idx);
+            if (current_cell.children_idx[i] != -1) {
+                //std::cout << "CELL HAS " << current_cell.children_idx[0] << " " << current_cell.children_idx[1] << " " << current_cell.children_idx[2] << " " << current_cell.children_idx[3] << std::endl;
+                idx = approximate_centers_of_mass(target, current_cell.children_idx[i], theta_sq, combined_results, idx);
             }
         }
         return idx;

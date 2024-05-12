@@ -1219,7 +1219,7 @@ cdef double compute_gradient_negative(double[:, :] pos_reference,
         vector[CenterOfMass] results
     with nogil, parallel(num_threads=num_threads):
         # Define thread-local buffers
-        summary = <double *> malloc(sizeof(double) * n * offset)
+        summary = <double *> malloc(sizeof(double) * n * 4)
         for i in prange(start, stop, schedule='static'):
             # Clear the arrays
             neg_f[(i << 1)] = 0.0
@@ -1227,9 +1227,9 @@ cdef double compute_gradient_negative(double[:, :] pos_reference,
                 
 
             # Find which nodes are summarizing and collect their centers of mass
-
+            #printf("BEGAN\n")
             idx = iqt.approximate_centers_of_mass(pos_reference[i, 0], pos_reference[i, 1], theta*theta, summary)
-
+            #printf("FINISHED\n")
             for j in range(idx // 4):
                 dist_not_squared = summary[(j << 2) + 2]
                 size = summary[(j << 2) + 2 + 1]
