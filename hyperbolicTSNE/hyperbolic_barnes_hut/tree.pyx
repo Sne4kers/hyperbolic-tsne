@@ -20,9 +20,9 @@ cdef extern from "point.hpp":
 
 cdef extern from "cell.hpp":
     cdef struct Cell:
-        size_t parent_idx
+        INT32_t parent_idx
 
-        vector[size_t] children_idx
+        vector[INT32_t] children_idx
         bint is_leaf
 
         Point barycenter
@@ -50,9 +50,9 @@ cdef class PyInfinityQuadTree:
             points_vector.push_back(Point(points[i][0], points[i][1]))
         self.py_tree = InfinityQuadTree(points_vector)
 
-        print("BUILT!")
+        # print("BUILT!")
 
-        print(self.py_tree.get_nodes())
+        # print(self.py_tree.get_nodes())
 
     cpdef get_nodes(self):
         return self.py_tree.get_nodes()

@@ -1343,7 +1343,6 @@ def gradient(float[:] timings,
 
 ###################################
 ###################################
-
 cdef extern from "point.hpp":
     cdef struct Point:
         DTYPE_t x
@@ -1357,9 +1356,9 @@ cdef extern from "centre_of_mass.hpp":
 
 cdef extern from "cell.hpp":
     cdef struct Cell:
-        SIZE_t parent_idx
+        INT32_t parent_idx
 
-        vector[SIZE_t] children_idx
+        vector[INT32_t] children_idx
         bint is_leaf
 
         Point barycenter

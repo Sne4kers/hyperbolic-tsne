@@ -5,8 +5,8 @@
 #include <limits>
 
 struct Cell{
-    size_t parent_idx;
-    std::vector<size_t> children_idx;
+    int parent_idx;
+    std::vector<int> children_idx;
 
     bool is_leaf;
     size_t cumulative_size;
@@ -23,8 +23,8 @@ struct Cell{
     double lorentz_factor;
 
     Cell(size_t depth_, const Point& min_bounds_, const Point& max_bounds_) : 
-        parent_idx(0), 
-        children_idx{{0, 0, 0, 0}}, 
+        parent_idx(-1), 
+        children_idx{{-1, -1, -1, -1}}, 
         is_leaf(false), 
         cumulative_size(0), 
         depth(depth_),
