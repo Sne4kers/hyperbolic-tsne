@@ -22,7 +22,7 @@ public:
         return _nodes;
     }
 
-    size_t approximate_centers_of_mass(const double& x, const double& y, const double& theta_sq, double* combined_results) const {
+    size_t approximate_centers_of_mass(double x, double y, double theta_sq, double* combined_results) const {
         return approximate_centers_of_mass(Point{x,y}, _nodes.size() - 1, theta_sq, combined_results, 0);
         // std::cout << combined_results.size() << std::endl;
     }
@@ -45,7 +45,6 @@ private:
                 _nodes[result_idx].is_leaf = true;
                 _nodes[result_idx].barycenter = Point{(*begin_points).x, (*begin_points).y};
                 _nodes[result_idx].lorentz_factor = hyperbolic_utils::lorentz_factor(_nodes[result_idx].barycenter.to_klein().sq_norm()); 
-                _nodes[result_idx].barycenter = Point{(*begin_points).x, (*begin_points).y};
                 _nodes[result_idx].cumulative_size = 1;
                 return result_idx;
             }
@@ -114,7 +113,7 @@ private:
         return hyperbolic_utils::isBoxWithinUnitCircle(min_bounds.x, min_bounds.y, max_bounds.x, max_bounds.y);
     }
 
-    size_t approximate_centers_of_mass(const Point& target, int cell_idx, double theta_sq, double* combined_results, size_t idx) const {
+    size_t approximate_centers_of_mass(const Point& target, const int& cell_idx, const double& theta_sq, double* combined_results, size_t idx) const {
         auto& current_cell = _nodes[cell_idx];
         //std::cout << "cell_idx " << cell_idx << " idx " << idx << std::endl;
 
@@ -125,19 +124,16 @@ private:
         //std::cout << "HERE 1";
         double distance_to_target = target.distance_to_point_poincare(current_cell.barycenter);
         double distance_squared = distance_to_target * distance_to_target;
-        combined_results[idx + 2] = distance_to_target;
 
         //std::cout << "GOT TO HERE" << std::endl;
         // Check the stop condition
-        if (current_cell.is_leaf || (!current_cell.contains_infinity && (current_cell.max_distance_within_squared / distance_squared < theta_sq))) {
-            combined_results[idx] = current_cell.barycenter.x;
-            combined_results[idx + 1] = current_cell.barycenter.y;
+        if (current_cell.is_leaf || (!current_cell.contains_infinity && ((current_cell.max_distance_within_squared / distance_squared) < theta_sq))) {
+            hyperbolic_utils::distance_grad(target.x, target.y, current_cell.barycenter.x, current_cell.barycenter.y, combined_results[idx], combined_results[idx + 1]);
             combined_results[idx + 2] = distance_to_target;
             combined_results[idx + 3] = current_cell.cumulative_size;
             return idx + 4;
         }
         //std::cout << "LEFT" << std::endl;
-        combined_results[idx + 3] = 0;
         // If stop condition wasn't triggered - go deeper and combine results
         for(int i = 0; i < 4; ++i) {
             if (current_cell.children_idx[i] != -1) {

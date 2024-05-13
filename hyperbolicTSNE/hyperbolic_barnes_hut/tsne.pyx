@@ -1222,8 +1222,8 @@ cdef double compute_gradient_negative(double[:, :] pos_reference,
         summary = <double *> malloc(sizeof(double) * n * 4)
         for i in prange(start, stop, schedule='static'):
             # Clear the arrays
-            neg_f[(i << 1)] = 0.0
-            neg_f[(i << 1) + 1] = 0.0
+            neg_force_x = 0.0
+            neg_force_y = 0.0
                 
 
             # Find which nodes are summarizing and collect their centers of mass
@@ -1244,9 +1244,11 @@ cdef double compute_gradient_negative(double[:, :] pos_reference,
                     # Old Solution
                     mult = size * qijZ * qijZ
 
-                neg_f[(i << 1)] += mult * distance_grad(pos_reference[i, 0], pos_reference[i, 1], summary[(j << 2) + 0], summary[(j << 2) + 1], 0)
-                neg_f[(i << 1) + 1] += mult * distance_grad(pos_reference[i, 0], pos_reference[i, 1], summary[(j << 2) + 0], summary[(j << 2) + 1], 1)
+                neg_force_x = neg_force_x + mult * summary[(j << 2) + 0]
+                neg_force_y = neg_force_y + mult * summary[(j << 2) + 1]
 
+            neg_f[(i << 1)] = neg_force_x
+            neg_f[(i << 1) + 1] = neg_force_y
             
             # t3 = clock()
 
