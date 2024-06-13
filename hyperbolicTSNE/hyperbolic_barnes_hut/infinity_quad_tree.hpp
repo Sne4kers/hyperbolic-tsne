@@ -2,11 +2,9 @@
 #include "cell.hpp"
 #include "point.hpp"
 #include "math_utils.hpp"
-#include "centre_of_mass.hpp"
 #include <stddef.h>
 #include <vector>
 #include <algorithm>
-#include <iostream>
 
 class InfinityQuadTree {
 public: 
@@ -86,21 +84,19 @@ private:
             + (child2_idx == -1 ? Point{0, 0} : (_nodes[child2_idx].barycenter.to_klein() * _nodes[child2_idx].lorentz_factor))
             + (child3_idx == -1 ? Point{0, 0} : (_nodes[child3_idx].barycenter.to_klein() * _nodes[child3_idx].lorentz_factor))) / new_lorentz_factor;
 
-        /*
+        double new_max_distance_within_cell = 0;
 
-        double new_lorentz_factor = 0;
-        double temp_lorentz_factor;
-        Point new_barycenter_klein = Point{0, 0};
-        for(auto it = begin_points; it < end_points; ++it) {
-            std::cout << "-------\n";
-            std::cout << (*it).x << " " << (*it).y << std::endl;
-            temp_lorentz_factor = hyperbolic_utils::lorentz_factor((*it).to_klein().sq_norm());
-            std::cout << (*it).x << " " << (*it).y << std::endl;
-            new_barycenter_klein = new_barycenter_klein + (*it).to_klein() * temp_lorentz_factor;
-            std::cout << (*it).x << " " << (*it).y << std::endl;
-            new_lorentz_factor += new_lorentz_factor;
+        for(int i = 0; i < 4; ++i) {
+            for(int j = i + 1; j < 4; ++j) {
+                if (_nodes[result_idx].children_idx[i] == -1 || _nodes[result_idx].children_idx[j] == -1) {
+                    continue;
+                }
+                new_max_distance_within_cell = std::max(new_max_distance_within_cell, 
+                _nodes[_nodes[result_idx].children_idx[i]].barycenter.distance_to_point_poincare(_nodes[_nodes[result_idx].children_idx[j]].barycenter)
+                );
+            }
         }
-        */
+        _nodes[result_idx].max_distance_within_squared = new_max_distance_within_cell * new_max_distance_within_cell;
 
         _nodes[result_idx].barycenter = new_barycenter_klein.to_poincare();
         _nodes[result_idx].lorentz_factor = new_lorentz_factor;

@@ -27,26 +27,29 @@ from hyperbolicTSNE.visualization import plot_poincare
 # GENERAL EXPERIMENT PARAMETERS #
 #################################
 
-BASE_DIR = "../results/nnp_per_theta_MNIST"
+BASE_DIR = "../results/nnp_per_theta_C_ELEGANS"
 DATASETS_DIR = "../datasets"  # directory to read the data from
 
 # Constants
 SEED = 42  # seed to initialize random processes
 PERP = 30  # perplexity value to be used throughout the experiments
-VANILLA = False  # whether to use momentum or not
+VANILLA = False  # whether to use momentum or not   
 EXAG = 12  # the factor by which the attractive forces are amplified during early exaggeration
 hd_params = {"perplexity": PERP}
-dataset = Datasets.MNIST  # The dataset to run the experiment on
+dataset = Datasets.C_ELEGANS  # The dataset to run the experiment on
+
+num_points = 4000 # number of points to use
 
 ###################
 # EXPERIMENT LOOP #
 ###################
 
-dataX, dataLabels, D, V = load_data(  # Load the data
+dataX, dataLabels, D, V, _ = load_data(  # Load the data
     dataset,
     data_home=DATASETS_DIR,
     random_state=SEED,
     to_return="X_labels_D_V",
+    sample=num_points,
     hd_params=hd_params
 )
 

@@ -15,6 +15,8 @@ from cython.parallel cimport prange, parallel
 from libc.string cimport memcpy
 from libcpp.vector cimport vector
 from libc.stdint cimport SIZE_MAX
+from libc.stdio cimport fopen, fclose
+from libcpp.string cimport string
 
 np.import_array()
 
@@ -1100,17 +1102,30 @@ cdef double compute_gradient(float[:] timings,
         int n_dimensions = 2
         double sQ
         double error
+        double mean_summarize_size
         clock_t t1 = 0, t2 = 0
 
     cdef double* neg_f = <double*> malloc(sizeof(double) * n_samples * n_dimensions)
     cdef double* pos_f = <double*> malloc(sizeof(double) * n_samples * n_dimensions)
+    cdef size_t* summary_size_arr = <size_t*> malloc(sizeof(size_t) * n_samples)
 
     if TAKE_TIMING:
         t1 = clock()
     # sQ = compute_gradient_negative(pos_reference, neighbors, indptr, neg_f, qt, dof, theta, start,
     #                                stop, num_threads)
     sQ = compute_gradient_negative(pos_reference, neg_f, iqt, dof, theta, start,
-                                   stop, num_threads)
+                                   stop, num_threads, summary_size_arr)
+
+    mean_summarize_size = 0.0
+    for index in range(n_samples):
+        mean_summarize_size += 1.0 * summary_size_arr[index] / n_samples
+    
+    cdef string s = string(b"accelerated_quad_tree.txt")
+    add_to_file(s, mean_summarize_size)
+
+    printf("\nFIRST ITEM: %d\n", summary_size_arr[0])
+    printf("\n\nAVERAGE SUMMARIZE SIZE: %f\n", mean_summarize_size)
+
     if TAKE_TIMING:
         t2 = clock()
         timings[2] = ((float) (t2 - t1)) / CLOCKS_PER_SEC
@@ -1196,14 +1211,16 @@ cdef double compute_gradient_negative(double[:, :] pos_reference,
                                       float theta,
                                       long start,
                                       long stop,
-                                      int num_threads) nogil:
+                                      int num_threads,
+                                      size_t* summary_size_arr) nogil:
     if stop == -1:
         stop = pos_reference.shape[0]
     cdef:
         int ax
         int n_dimensions = 2
         int offset = n_dimensions + 2
-        long i, j, idx
+        long i, j
+        size_t idx
         long n = stop - start
         long dta = 0
         long dtb = 0
@@ -1229,6 +1246,7 @@ cdef double compute_gradient_negative(double[:, :] pos_reference,
             # Find which nodes are summarizing and collect their centers of mass
             #printf("BEGAN\n")
             idx = iqt.approximate_centers_of_mass(pos_reference[i, 0], pos_reference[i, 1], theta*theta, summary)
+            summary_size_arr[i] = (idx // 4)
             #printf("FINISHED\n")
             for j in range(idx // 4):
                 dist_not_squared = summary[(j << 2) + 2]
@@ -1345,6 +1363,9 @@ def gradient(float[:] timings,
 
 ###################################
 ###################################
+cdef extern from "math_utils.hpp":
+    void add_to_file(string filename, double text) nogil
+
 cdef extern from "point.hpp":
     cdef struct Point:
         DTYPE_t x

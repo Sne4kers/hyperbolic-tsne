@@ -44,18 +44,21 @@ VANILLA = False  # if vanilla is set to true, regular gradient descent without a
 EXAG = 12  # the factor by which the attractive forces are amplified during early exaggeration
 hd_params = {"perplexity": PERP}
 
+num_points = 8000000 # number of points to use
+theta=0.5
+
 # Variables
 datasets = [
-    Datasets.LUKK,
-    Datasets.MYELOID8000,
-    Datasets.PLANARIA,
+    # Datasets.LUKK,
+    # Datasets.MYELOID8000,
+    # Datasets.PLANARIA,
     Datasets.MNIST,
-    Datasets.C_ELEGANS,
-    Datasets.WORDNET
+    # Datasets.C_ELEGANS,
+    # Datasets.WORDNET
 ]
 tsne_types = ["accelerated", "exact"]  # the type "accelerated" uses the polar quad tree for acceleration, "exact"
 # uses no acceleration and runs in quadratic time per iteration
-splitting_strategies = ["equal_length", "equal_area"]  # the polar quad tree comes in two flavors: Splitting by equal
+splitting_strategies = ["equal_length"]  # the polar quad tree comes in two flavors: Splitting by equal
 # area and by equal length in the embedding space. The "equal_length" splitting shows better performance in our
 # experiments.
 
@@ -77,6 +80,18 @@ for dataset in datasets:  # Iterate over the data sets
     )
 
     n_samples = dataX.shape[0]
+    if n_samples > num_points:
+        dataX, dataLabels = load_data(  # Load the data
+            dataset,
+            data_home=DATASETS_DIR,
+            to_return="X_labels",  # Return the high-dimensional data and its labels
+            hd_params=hd_params,
+            sample=num_points,
+            knn_method=KNN_METHOD
+        )
+
+    n_samples = dataX.shape[0] 
+    
     sample_sizes = np.array([n_samples, ]).astype(int)  # only run the full size sample, don't create sub-samples
 
     X_embedded = initialization(  # create an initial embedding of the data into 2-dimensional space via PCA

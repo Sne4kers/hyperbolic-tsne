@@ -34,6 +34,7 @@ def squared_hyperbolic_distance(x, y):
 # GENERAL EXPERIMENT PARAMETERS #
 #################################
 results_path = Path("../results/samples_per_data_set/")
+DATASETS_DIR = "../datasets"
 
 # Load the overview of the experiments
 df = pd.read_csv(results_path.joinpath("overview.csv"))
@@ -54,7 +55,7 @@ NUM_THREADS = 4  # Number of threads to be used in gradient computation
 for i, dataset_record in enumerate(averaged_results.to_records()):
     dataset = dataset_record.dataset
 
-    dataX = load_data(Datasets[dataset], to_return="X")
+    dataX = load_data(Datasets.C_ELEGANS, data_home=DATASETS_DIR, to_return="X")
 
     # Iterate over all records for this dataset
     for record in df[(df.dataset == dataset)].to_records():
@@ -76,7 +77,7 @@ for i, dataset_record in enumerate(averaged_results.to_records()):
         indptr = V.indptr.astype(np.int64, copy=False)
 
         # Iterate over all embeddings created for this specific data set
-        for path in tqdm(list(Path(f"{record_path}/embeddings/").rglob("*.csv"))):
+        for path in tqdm(list(Path(f"{record_path}/embeddingssolver_gradient_descent_sequential_opt_0/").rglob("*.csv"))):
             if path.name.startswith("._"):
                 continue
 

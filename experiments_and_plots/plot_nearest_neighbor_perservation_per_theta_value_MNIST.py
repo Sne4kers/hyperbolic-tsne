@@ -16,10 +16,10 @@ from hyperbolicTSNE import Datasets
 # GENERAL EXPERIMENT PARAMETERS #
 #################################
 
-BASE_DIR = "../results/nnp_per_theta_MNIST"
+BASE_DIR = "../results/nnp_per_theta_C_ELEGANS"
 
 # Constants
-dataset = Datasets.MNIST  # The dataset to run the experiment on
+dataset = Datasets.C_ELEGANS  # The dataset to run the experiment on
 
 ###################
 # EXPERIMENT LOOP #
@@ -27,11 +27,11 @@ dataset = Datasets.MNIST  # The dataset to run the experiment on
 
 # Save final embedding
 fig, ax = plt.subplots()
-ax.set_title("MNIST")
+ax.set_title("C_ELEGANS")
 ax.set_xlabel('Precision')
 ax.set_ylabel('Recall')
 
-for theta in [x / 10 for x in range(0, 11, 1)]:  # Iterate over the different values for theta
+for theta in [x / 10 for x in range(1, 11, 1)]:  # Iterate over the different values for theta
 
     print(f"[nnp_per_theta] Processing {dataset}, Theta: {theta}")
 

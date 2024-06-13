@@ -33,11 +33,11 @@ for subdir, dirs, files in os.walk(results_path):
                     "average_time": average_time
             })
 average_times = pd.DataFrame(data)
-average_times.loc[average_times.dataset == "LUKK", "order"] = 1
-average_times.loc[average_times.dataset == "MYELOID8000", "order"] = 2
-average_times.loc[average_times.dataset == "PLANARIA", "order"] = 3
-average_times.loc[average_times.dataset == "MNIST", "order"] = 4
-average_times.loc[average_times.dataset == "WORDNET", "order"] = 5
+# average_times.loc[average_times.dataset == "LUKK", "order"] = 1
+# average_times.loc[average_times.dataset == "MYELOID8000", "order"] = 2
+# average_times.loc[average_times.dataset == "PLANARIA", "order"] = 3
+# average_times.loc[average_times.dataset == "MNIST", "order"] = 4
+# average_times.loc[average_times.dataset == "WORDNET", "order"] = 5
 average_times.loc[average_times.dataset == "C_ELEGANS", "order"] = 6
 average_times = average_times.sort_values(by="order", ascending=True)
 

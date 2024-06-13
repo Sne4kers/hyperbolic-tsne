@@ -40,14 +40,16 @@ VANILLA = False  # if vanilla is set to true, regular gradient descent without a
 EXAG = 12  # the factor by which the attractive forces are amplified during early exaggeration
 hd_params = {"perplexity": PERP}
 
+num_points = 4000
+
 # Variables
 datasets = [
-    Datasets.LUKK,
-    Datasets.MYELOID8000,
-    Datasets.PLANARIA,
-    Datasets.MNIST,
+    # Datasets.LUKK,
+    # Datasets.MYELOID8000,
+    # Datasets.PLANARIA,
+    # Datasets.MNIST,
     Datasets.C_ELEGANS,
-    Datasets.WORDNET
+    # Datasets.WORDNET
 ]
 thetas = [n / 20 for n in range(20, -1, -1)]  # The different theta values to be used in the acceleration experiment
 
@@ -60,11 +62,12 @@ for dataset in datasets:  # Iterate over the data sets
 
     rng = np.random.default_rng(seed=SEED)  # random number generator
 
-    dataX, dataLabels, D, V = load_data(
+    dataX, dataLabels, D, V, _= load_data(
         dataset,
         data_home=DATASETS_DIR,
         to_return="X_labels_D_V",  # Return the high-dimensional data, its labels, the NN-graph, the probabilty matrix
         hd_params=hd_params,
+        sample=num_points,
         knn_method=KNN_METHOD
     )
 

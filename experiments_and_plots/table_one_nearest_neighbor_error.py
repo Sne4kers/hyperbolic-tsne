@@ -24,12 +24,12 @@ results_path = Path("../results/timings_per_theta")
 K_HYPERBOLIC_NEIGHBOR_APPROXIMATION = 15  # Number of nearest neighbors to consider in a Euclidean approximation to find
 # the actual nearest hyperbolic neighbor
 datasets = [
-    Datasets.LUKK,
-    Datasets.MYELOID8000,
-    Datasets.PLANARIA,
-    Datasets.MNIST,
+    # Datasets.LUKK,
+    # Datasets.MYELOID8000,
+    # Datasets.PLANARIA,
+    # Datasets.MNIST,
     Datasets.C_ELEGANS,
-    Datasets.WORDNET
+    # Datasets.WORDNET
 ]
 
 
@@ -37,11 +37,11 @@ datasets = [
 # Helper Methods #
 ##################
 def sort_dataframe(frame_to_be_sorted):
-    frame_to_be_sorted.loc[frame_to_be_sorted.dataset == "LUKK", "order"] = 1
-    frame_to_be_sorted.loc[frame_to_be_sorted.dataset == "MYELOID8000", "order"] = 2
-    frame_to_be_sorted.loc[frame_to_be_sorted.dataset == "PLANARIA", "order"] = 3
-    frame_to_be_sorted.loc[frame_to_be_sorted.dataset == "MNIST", "order"] = 4
-    frame_to_be_sorted.loc[frame_to_be_sorted.dataset == "WORDNET", "order"] = 5
+    # frame_to_be_sorted.loc[frame_to_be_sorted.dataset == "LUKK", "order"] = 1
+    # frame_to_be_sorted.loc[frame_to_be_sorted.dataset == "MYELOID8000", "order"] = 2
+    # frame_to_be_sorted.loc[frame_to_be_sorted.dataset == "PLANARIA", "order"] = 3
+    # frame_to_be_sorted.loc[frame_to_be_sorted.dataset == "MNIST", "order"] = 4
+    # frame_to_be_sorted.loc[frame_to_be_sorted.dataset == "WORDNET", "order"] = 5
     frame_to_be_sorted.loc[frame_to_be_sorted.dataset == "C_ELEGANS", "order"] = 6
     frame_to_be_sorted = frame_to_be_sorted.sort_values(by="order", ascending=True)
     return frame_to_be_sorted
@@ -100,7 +100,7 @@ for dataset in datasets:
 
     theta_errors = []
     # For each dataset, iterate over the values of theta
-    for theta in [0.5]:
+    for theta in [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]:
         theta_path = Path(f"{results_path}/{dataset.name}/theta_{theta}/")
         theta_one_nearest_neighbor_error = one_nearest_neighbor_error(theta_path)
         print(f"Theta {theta}: {theta_one_nearest_neighbor_error}")

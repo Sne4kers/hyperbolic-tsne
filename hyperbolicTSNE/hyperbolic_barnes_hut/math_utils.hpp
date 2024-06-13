@@ -1,7 +1,9 @@
 #pragma once
 #include <cmath>
-#include "point.hpp"
 #include <algorithm>
+#include <iostream>
+#include <fstream>
+#include <string>
 
 #define M_UTILS_EPSILON 1e-5
 #define M_BOUNDARY (1.0 - M_UTILS_EPSILON)
@@ -63,4 +65,11 @@ namespace hyperbolic_utils {
         res_grad_x = shared_scalar * (u_scalar * u0 - v_scalar * v0);
         res_grad_y = shared_scalar * (u_scalar * u1 - v_scalar * v1);
     }
+}
+
+void add_to_file(std::string filename, double content) {
+    std::ofstream myfile;
+    myfile.open(filename, std::ios_base::app);
+    myfile << content << "\n";
+    myfile.close();
 }
