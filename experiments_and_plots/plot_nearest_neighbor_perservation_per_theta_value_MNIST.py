@@ -31,7 +31,7 @@ ax.set_title("C_ELEGANS")
 ax.set_xlabel('Precision')
 ax.set_ylabel('Recall')
 
-for theta in [x / 10 for x in range(1, 11, 1)]:  # Iterate over the different values for theta
+for theta in [x / 10 for x in range(0, 11, 1)]:  # Iterate over the different values for theta
 
     print(f"[nnp_per_theta] Processing {dataset}, Theta: {theta}")
 

@@ -83,7 +83,9 @@ for dataset_dir in BASE_DIR.glob("*"):
 
                                 # Add points to plot
                                 if config_dir.name == 'configuration_0':
-                                    ax.plot(precisions, recalls, label="accelerated")
+                                    ax.plot(precisions, recalls, label="polar")
+                                elif config_dir.name == 'configuration_1':
+                                    ax.plot(precisions, recalls, label="cartesian")
                                 else:
                                     ax.plot(precisions, recalls, label="exact")
 

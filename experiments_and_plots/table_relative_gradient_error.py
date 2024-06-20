@@ -46,7 +46,7 @@ averaged_results = df[["dataset"]].groupby(["dataset"]).first().reset_index()
 THETA = 0.5  # Theta value to be used in the approximate version of t-SNE
 EMBEDDING_DIMENSIONS = 2  # Embed into two dimensions
 VERBOSE = 0  # No additional debugging information when computing the gradient
-NUM_THREADS = 4  # Number of threads to be used in gradient computation
+NUM_THREADS = 8  # Number of threads to be used in gradient computation
 
 ###################
 # EXPERIMENT LOOP #
@@ -55,7 +55,7 @@ NUM_THREADS = 4  # Number of threads to be used in gradient computation
 for i, dataset_record in enumerate(averaged_results.to_records()):
     dataset = dataset_record.dataset
 
-    dataX = load_data(Datasets.C_ELEGANS, data_home=DATASETS_DIR, to_return="X")
+    dataX = load_data(Datasets.LUKK, data_home=DATASETS_DIR, to_return="X")
 
     # Iterate over all records for this dataset
     for record in df[(df.dataset == dataset)].to_records():

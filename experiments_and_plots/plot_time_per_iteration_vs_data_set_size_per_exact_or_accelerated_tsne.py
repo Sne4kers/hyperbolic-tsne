@@ -55,7 +55,7 @@ plot_times_df = plot_times_df[(plot_times_df.splitting_strategy == "equal_length
 
 # Perform linear regression on the exact timinigs to a quadratic model
 plot_times_df_exact = plot_times_df.copy()
-plot_times_df_exact = plot_times_df_exact[(plot_times_df_exact.tsne_type == "exact")]
+plot_times_df_exact = plot_times_df_exact[(plot_times_df_exact.tsne_type == "cartesian")]
 x = plot_times_df_exact["sample_size"].values
 y = plot_times_df_exact["total_time"].values
 model = np.poly1d(np.polyfit(x, y, 2))
@@ -65,27 +65,27 @@ y_predicted = [model.coef[0] * (a ** 2) for a in x_predicted]
 
 _, axs = plt.subplots(figsize=(5, 5), ncols=1)
 # Plot a trendline for the quadratic run times
-axs.plot(
-    x_predicted,
-    y_predicted,
-    color=(0, 0, 0, 1.0)
-)
+# axs.plot(
+#     x_predicted,
+#     y_predicted,
+#     color=(0, 0, 0, 1.0)
+# )
 
 # Perform linear regression on the accelerated timings to an n*log(n) model
 plot_times_df_accelerated = plot_times_df.copy()
-plot_times_df_accelerated = plot_times_df_accelerated[(plot_times_df_accelerated.tsne_type == "accelerated")]
+plot_times_df_accelerated = plot_times_df_accelerated[(plot_times_df_accelerated.tsne_type == "polar")]
 x = plot_times_df_accelerated["sample_size"].values
 y = plot_times_df_accelerated["total_time"].values
 model = np.poly1d(np.polyfit(np.log(x)*x, y, 1))
 y_predicted = [model.coef[0] * a * np.log(a) for a in x_predicted]
 
 # Plot a trendline for the lin-log run times
-axs.plot(
-    x_predicted,
-    y_predicted,
-    color=(0, 0, 0, 1.0),
-    linestyle="dashed"
-)
+# axs.plot(
+#     x_predicted,
+#     y_predicted,
+#     color=(0, 0, 0, 1.0),
+#     linestyle="dashed"
+# )
 
 times_lineplot = sns.lineplot(
     data=timings_df,

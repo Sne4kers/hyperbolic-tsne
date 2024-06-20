@@ -43,7 +43,8 @@ opt_config = dict(
     exact=False,  # To use the quad tree for acceleration (like Barnes-Hut in the Euclidean setting) or to evaluate the gradient exactly
     area_split=False,  # To build or not build the polar quad tree based on equal area splitting or - alternatively - on equal length splitting
     n_iter_check=40,  # Needed for early stopping criterion
-    size_tol=0.999  # Size of the embedding to be used as early stopping criterion
+    size_tol=0.999,  # Size of the embedding to be used as early stopping criterion
+    polar_or_cartesian="cartesian"
 )
 
 opt_params = SequentialOptimizer.sequence_poincare(**opt_config)

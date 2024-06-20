@@ -13,9 +13,7 @@ from libc.math cimport sqrt, log, acosh, cosh, cos, sin, M_PI, atan2, tanh, atan
 from libc.stdlib cimport malloc, free, realloc
 from cython.parallel cimport prange, parallel
 from libc.string cimport memcpy
-from libcpp.vector cimport vector
 from libc.stdint cimport SIZE_MAX
-from libc.stdio cimport fopen, fclose
 from libcpp.string cimport string
 
 np.import_array()
@@ -972,7 +970,7 @@ cdef double exact_compute_gradient(float[:] timings,
                             np.int64_t[:] neighbors,
                             np.int64_t[:] indptr,
                             double[:, :] tot_force,
-                            InfinityQuadTree iqt,
+                            _QuadTree qt,
                             float theta,
                             int dof,
                             long start,
@@ -985,7 +983,7 @@ cdef double exact_compute_gradient(float[:] timings,
         long i, coord
         int ax
         long n_samples = pos_reference.shape[0]
-        int n_dimensions = 2
+        int n_dimensions = qt.n_dimensions
         double sQ
         double error
         clock_t t1 = 0, t2 = 0
@@ -995,9 +993,10 @@ cdef double exact_compute_gradient(float[:] timings,
 
     if TAKE_TIMING:
         t1 = clock()
-    sQ = exact_compute_gradient_negative(pos_reference, neighbors, indptr, neg_f, iqt, dof, theta, start,
+
+    sQ = exact_compute_gradient_negative(pos_reference, neighbors, indptr, neg_f, qt, dof, theta, start,
                                    stop, num_threads)
-    
+
     if TAKE_TIMING:
         t2 = clock()
         timings[2] = ((float) (t2 - t1)) / CLOCKS_PER_SEC
@@ -1007,7 +1006,7 @@ cdef double exact_compute_gradient(float[:] timings,
 
     error = compute_gradient_positive(val_P, pos_reference, neighbors, indptr,
                                       pos_f, n_dimensions, dof, sQ, start,
-                                      10, compute_error, num_threads)
+                                      qt.verbose, compute_error, num_threads)
 
     if TAKE_TIMING:
         t2 = clock()
@@ -1029,7 +1028,7 @@ cdef double exact_compute_gradient_negative(double[:, :] pos_reference,
                                       np.int64_t[:] neighbors,
                                       np.int64_t[:] indptr,
                                       double* neg_f,
-                                      InfinityQuadTree iqt,
+                                      _QuadTree qt,
                                       int dof,
                                       float theta,
                                       long start,
@@ -1037,7 +1036,7 @@ cdef double exact_compute_gradient_negative(double[:, :] pos_reference,
                                       int num_threads) nogil:
     cdef:
         int ax
-        int n_dimensions = 2
+        int n_dimensions = qt.n_dimensions
         int offset = n_dimensions + 2
         long i, j, k, idx
         long n = stop - start
@@ -1086,7 +1085,7 @@ cdef double compute_gradient(float[:] timings,
                             np.int64_t[:] neighbors,
                             np.int64_t[:] indptr,
                             double[:, :] tot_force,
-                            InfinityQuadTree iqt,
+                            _QuadTree qt,
                             float theta,
                             int dof,
                             long start,
@@ -1099,23 +1098,22 @@ cdef double compute_gradient(float[:] timings,
         long i, coord
         int ax
         long n_samples = pos_reference.shape[0]
-        int n_dimensions = 2
+        int n_dimensions = qt.n_dimensions
         double sQ
         double error
-        double mean_summarize_size
         clock_t t1 = 0, t2 = 0
 
     cdef double* neg_f = <double*> malloc(sizeof(double) * n_samples * n_dimensions)
     cdef double* pos_f = <double*> malloc(sizeof(double) * n_samples * n_dimensions)
+
     # cdef size_t* summary_size_arr = <size_t*> malloc(sizeof(size_t) * n_samples)
 
     if TAKE_TIMING:
         t1 = clock()
     # sQ = compute_gradient_negative(pos_reference, neighbors, indptr, neg_f, qt, dof, theta, start,
     #                                stop, num_threads)
-    sQ = compute_gradient_negative(pos_reference, neg_f, iqt, dof, theta, start,
+    sQ = compute_gradient_negative(pos_reference, neg_f, qt, dof, theta, start,
                                    stop, num_threads)
-
     if TAKE_TIMING:
         t2 = clock()
         timings[2] = ((float) (t2 - t1)) / CLOCKS_PER_SEC
@@ -1124,19 +1122,18 @@ cdef double compute_gradient(float[:] timings,
     # for index in range(n_samples):
     #     mean_summarize_size += 1.0 * summary_size_arr[index] / n_samples
     
-    # cdef string s = string(b"accelerated_quad_tree_cartesian.txt")
+    # cdef string s = string(b"accelerated_quad_tree_polar.txt")
     # add_to_file(s, mean_summarize_size, n_samples)
 
     # printf("\nFIRST ITEM: %d\n", summary_size_arr[0])
     # printf("\n\nAVERAGE SUMMARIZE SIZE: %f\n", mean_summarize_size)
-
 
     if TAKE_TIMING:
         t1 = clock()
 
     error = compute_gradient_positive(val_P, pos_reference, neighbors, indptr,
                                       pos_f, n_dimensions, dof, sQ, start,
-                                      10, compute_error, num_threads)
+                                      qt.verbose, compute_error, num_threads)
 
     if TAKE_TIMING:
         t2 = clock()
@@ -1207,7 +1204,7 @@ cdef double compute_gradient_positive(double[:] val_P,
 
 cdef double compute_gradient_negative(double[:, :] pos_reference,
                                       double* neg_f,
-                                      InfinityQuadTree iqt,
+                                      _QuadTree qt,
                                       int dof,
                                       float theta,
                                       long start,
@@ -1217,75 +1214,90 @@ cdef double compute_gradient_negative(double[:, :] pos_reference,
         stop = pos_reference.shape[0]
     cdef:
         int ax
-        int n_dimensions = 2
+        int n_dimensions = qt.n_dimensions
         int offset = n_dimensions + 2
-        long i, j
-        size_t idx
+        long i, j, idx
         long n = stop - start
         long dta = 0
         long dtb = 0
-        double size
-        double dist_not_squared, mult
+        double size, dist2s, mult
         double qijZ, sum_Q = 0.0
-        double neg_force_x
-        double neg_force_y
-        int n_centers 
-        int center_of_mass_idx
-        CenterOfMass center_of_mass
-        clock_t t1 = 0, t2 = 0, t3 = 0
-        vector[CenterOfMass] results
+        double* force
+        double* summary
+        double* pos
+        double* neg_force
+        # clock_t t1 = 0, t2 = 0, t3 = 0
+
+
     with nogil, parallel(num_threads=num_threads):
         # Define thread-local buffers
-        summary = <double *> malloc(sizeof(double) * n * 4)
+        summary = <double *> malloc(sizeof(double) * n * offset)
+        force = <double *> malloc(sizeof(double) * n_dimensions)
+        pos = <double *> malloc(sizeof(double) * n_dimensions)
+        neg_force = <double *> malloc(sizeof(double) * n_dimensions)
+
         for i in prange(start, stop, schedule='static'):
             # Clear the arrays
-            neg_force_x = 0.0
-            neg_force_y = 0.0
-                
+            for ax in range(n_dimensions):
+                force[ax] = 0.0
+                neg_force[ax] = 0.0
+                pos[ax] = pos_reference[i, ax]
 
             # Find which nodes are summarizing and collect their centers of mass
-            #printf("BEGAN\n")
-            idx = iqt.approximate_centers_of_mass(pos_reference[i, 0], pos_reference[i, 1], theta*theta, summary)
+            # deltas, and sizes, into vectorized arrays
+            # if take_timing:
+            #     t1 = clock()
+            idx = qt.summarize(pos, summary, theta*theta)
             # summary_size_arr[i] = (idx // 4)
-            #printf("FINISHED\n")
-            for j in range(idx // 4):
-                dist_not_squared = summary[(j << 2) + 2]
-                size = summary[(j << 2) + 2 + 1]
-                qijZ = 1. / (1. + dist_not_squared * dist_not_squared)  
+            # if take_timing:
+            #     t2 = clock()
+
+            # Compute the t-SNE negative force
+            # for the digits dataset, walking the tree
+            # is about 10-15x more expensive than the
+            # following for loop
+            for j in range(idx // offset):
+
+                dist2s = summary[j * offset + n_dimensions]
+                size = summary[j * offset + n_dimensions + 1]
+                qijZ = 1. / (1. + dist2s)  # 1/(1+dist)
+
+                # if size > 1:
+                #     printf("[QuadTree] Size: %g, %g\n", dist2s, dist2s * size / dist2s)
 
                 sum_Q += size * qijZ   # size of the node * q
 
                 if GRAD_FIX:
                     # New Fix
-                    mult = size * qijZ * qijZ * dist_not_squared
+                    mult = size * qijZ * qijZ * sqrt(dist2s)
                 else:
                     # Old Solution
                     mult = size * qijZ * qijZ
 
-                neg_force_x = neg_force_x + mult * summary[(j << 2) + 0]
-                neg_force_y = neg_force_y + mult * summary[(j << 2) + 1]
+                for ax in range(n_dimensions):
+                    neg_force[ax] += mult * summary[j * offset + ax]
 
-            neg_f[(i << 1)] = neg_force_x
-            neg_f[(i << 1) + 1] = neg_force_y
-            
-            # t3 = clock()
+            # if take_timing:
+            #     t3 = clock()
+            for ax in range(n_dimensions):
+                neg_f[i * n_dimensions + ax] = neg_force[ax]
+            # if take_timing:
+            #     dta += t2 - t1
+            #     dtb += t3 - t2
 
-            # dta += t2 - t1
-            # dtb += t3 - t2
-
+        free(force)
+        free(pos)
+        free(neg_force)
         free(summary)
-
-        #printf("[t-SNE] Tree: %li clock ticks | ", dta)
-        #printf("Force computation: %li clock ticks\n", dtb)
-        # printf("neg_f[0] %f\n", neg_f[0])
-        # printf("neg_f[1] %f\n", neg_f[1])
+    # if take_timing:
+    #     printf("[t-SNE] Tree: %li clock ticks | ", dta)
+    #     printf("Force computation: %li clock ticks\n", dtb)
 
     # Put sum_Q to machine EPSILON to avoid divisions by 0
     sum_Q = max(sum_Q, FLOAT64_EPS)
-    # printf("SUM_Q: %f", sum_Q)
     return sum_Q
 
-def gradient(float[:] timings,
+def gradient_polar(float[:] timings,
              double[:] val_P,
              double[:, :] pos_output,
              np.int64_t[:] neighbors,
@@ -1303,12 +1315,8 @@ def gradient(float[:] timings,
              bint grad_fix=0):
     cdef double C
     cdef int n
-    cdef vector[Point] iqt_initialization
-    cdef InfinityQuadTree infinity_qt
+    cdef _QuadTree qt = _QuadTree(pos_output.shape[1], verbose)
     cdef clock_t t1 = 0, t2 = 0
-    cdef n_samples = pos_output.shape[0]
-    cdef a
-    cdef b
 
     global AREA_SPLIT
     AREA_SPLIT = area_split
@@ -1320,24 +1328,7 @@ def gradient(float[:] timings,
         if TAKE_TIMING:
             t1 = clock()
 
-        #qt.build_tree(pos_output)
-        #########################
-        # Port points into a vector
-        iqt_initialization = vector[Point](0)
-        for i in range(n_samples):
-            # Add a clamp to not destroy a tree
-            # if i == 0:
-            #     print("PRE", pos_output[i, 0], pos_output[i, 1])
-            a = sqrt(pos_output[i, 0] * pos_output[i, 0] + pos_output[i, 1] * pos_output[i, 1])
-            b = atan2(pos_output[i, 1], pos_output[i, 0])
-            a = clamp(a, 0, BOUNDARY) #  BOUNDARY = 1 - EPSILON = 1 - 1e-5
-            pos_output[i, 0] = a * cos(b)
-            pos_output[i, 1] = a * sin(b)
-            iqt_initialization.push_back(Point(pos_output[i, 0], pos_output[i, 1]))
-            # if i == 0:
-            #     print("POST", iqt_initialization.back().x, iqt_initialization.back().y)
-
-        infinity_qt = InfinityQuadTree(iqt_initialization)
+        qt.build_tree(pos_output)
 
         if TAKE_TIMING:
             t2 = clock()
@@ -1345,14 +1336,10 @@ def gradient(float[:] timings,
 
     if TAKE_TIMING:
         t1 = clock()
-    if exact:
-        C = exact_compute_gradient(timings, val_P, pos_output, neighbors, indptr, forces,
-                             infinity_qt, theta, dof, skip_num_points, -1, compute_error,
-                             num_threads)
-    else:
-        C = compute_gradient(timings, val_P, pos_output, neighbors, indptr, forces,
-                              infinity_qt, theta, dof, skip_num_points, -1, compute_error,
-                             num_threads)
+
+    C = compute_gradient(timings, val_P, pos_output, neighbors, indptr, forces,
+                            qt, theta, dof, skip_num_points, -1, compute_error,
+                            num_threads)
     if TAKE_TIMING:
         t2 = clock()
         timings[1] = ((float) (t2 - t1)) / CLOCKS_PER_SEC
@@ -1361,42 +1348,8 @@ def gradient(float[:] timings,
         C = np.nan
     return C
 
+
 ###################################
 ###################################
 cdef extern from "math_utils.hpp":
     void add_to_file(string filename, double text, long number_of_samples) nogil
-
-cdef extern from "point.hpp":
-    cdef struct Point:
-        DTYPE_t x
-        DTYPE_t y
-
-cdef extern from "centre_of_mass.hpp":
-    cdef struct CenterOfMass:
-        Point position
-        SIZE_t number_of_accumulated_points
-        double distance_to_target
-
-cdef extern from "cell.hpp":
-    cdef struct Cell:
-        INT32_t parent_idx
-
-        vector[INT32_t] children_idx
-        bint is_leaf
-
-        Point barycenter
-        Point center
-
-        Point min_bounds
-        Point max_bounds
-
-        SIZE_t cumulative_size
-        SIZE_t depth
-        DTYPE_t lorentz_factor
-
-cdef extern from "infinity_quad_tree.hpp":
-    cdef cppclass InfinityQuadTree:
-        InfinityQuadTree() except +
-        InfinityQuadTree(vector[Point] points) except +
-        vector[Cell] get_nodes() nogil
-        SIZE_t approximate_centers_of_mass(DTYPE_t x, DTYPE_t y, double theta_sq, DTYPE_t* combined_results) nogil except +

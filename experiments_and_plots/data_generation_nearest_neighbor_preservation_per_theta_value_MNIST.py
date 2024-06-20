@@ -44,12 +44,11 @@ num_points = 4000 # number of points to use
 # EXPERIMENT LOOP #
 ###################
 
-dataX, dataLabels, D, V, _ = load_data(  # Load the data
+dataX, dataLabels, D, V = load_data(  # Load the data
     dataset,
     data_home=DATASETS_DIR,
     random_state=SEED,
     to_return="X_labels_D_V",
-    sample=num_points,
     hd_params=hd_params
 )
 
@@ -70,7 +69,7 @@ ax.set_ylabel('Recall')
 
 LR = (dataX.shape[0] * 1) / (EXAG * 1000)  # Compute the learning rate
 
-for theta in [x / 10 for x in range(0, 11, 1)]:  # Iterate over the different values for theta
+for theta in [x / 10 for x in range(1, 11, 1)]:  # Iterate over the different values for theta
 
     print(f"[nnp_per_theta] Processing {dataset}, Theta: {theta}")
 
@@ -84,8 +83,8 @@ for theta in [x / 10 for x in range(0, 11, 1)]:  # Iterate over the different va
         exact=False,
         n_iter_check=10,  # Needed for early stopping criterion
         size_tol=0.999,  # Size of the embedding to be used as early stopping criterion
-        angle=theta
-
+        angle=theta,
+        polar_or_cartesian="cartesian"
     )
 
     run_dir = Path(f"{BASE_DIR}/theta_{theta}/")

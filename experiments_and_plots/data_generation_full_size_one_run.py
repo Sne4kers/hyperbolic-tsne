@@ -49,14 +49,14 @@ theta=0.5
 
 # Variables
 datasets = [
-    # Datasets.LUKK,
+    Datasets.LUKK,
     # Datasets.MYELOID8000,
     # Datasets.PLANARIA,
-    Datasets.MNIST,
+    # Datasets.MNIST,
     # Datasets.C_ELEGANS,
     # Datasets.WORDNET
 ]
-tsne_types = ["accelerated", "exact"]  # the type "accelerated" uses the polar quad tree for acceleration, "exact"
+tsne_types = ["polar"]  # the type "accelerated" uses the polar quad tree for acceleration, "exact"
 # uses no acceleration and runs in quadratic time per iteration
 splitting_strategies = ["equal_length"]  # the polar quad tree comes in two flavors: Splitting by equal
 # area and by equal length in the embedding space. The "equal_length" splitting shows better performance in our
@@ -131,7 +131,8 @@ for dataset in datasets:  # Iterate over the data sets
                 exact=(tsne_type == "exact"),
                 area_split=(splitting_strategy == "equal_area"),
                 n_iter_check=10,  # Needed for early stopping criterion
-                size_tol=0.999  # Size of the embedding to be used as early stopping criterion
+                size_tol=0.999,  # Size of the embedding to be used as early stopping criterion
+                polar_or_cartesian=tsne_type
             )
 
             run_dir = Path(f"{BASE_DIR}/{dataset.name}/size_{sample_size}/configuration_{config_id}/run_{run_n}/")

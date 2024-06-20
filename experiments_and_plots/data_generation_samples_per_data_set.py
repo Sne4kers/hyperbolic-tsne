@@ -39,7 +39,7 @@ DATASETS_DIR = "../datasets"  # directory to read the data from
 
 # Constants
 SEED = 42  # seed to initialize random processes
-RUNS = 2  # number of repetitions to be run for each random sampling
+RUNS = 5  # number of repetitions to be run for each random sampling
 SIZE_SAMPLES = 5  # how many sample sizes to consider for the data set
 PERP = 30  # perplexity value to be used throughout the experiments
 KNN_METHOD = "hnswlib"  # use hnswlib for determining nearest neighbors in high-dimensional space; note that this is
@@ -57,10 +57,10 @@ datasets = [
     # Datasets.MYELOID8000,
     # Datasets.PLANARIA,
     # Datasets.MNIST,
-    Datasets.C_ELEGANS,
-    # Datasets.WORDNET
+    # Datasets.C_ELEGANS,
+    Datasets.WORDNET
 ]
-tsne_types = ["accelerated", "exact"]  # the type "accelerated" uses the polar quad tree for acceleration, "exact"
+tsne_types = ["polar", "cartesian"]  # the type "accelerated" uses the polar quad tree for acceleration, "exact"
 # uses no acceleration and runs in quadratic time per iteration
 splitting_strategies = ["equal_length"]  # the polar quad tree comes in two flavors: Splitting by equal
 # area and by equal length in the embedding space. The "equal_length" splitting shows better performance in our
@@ -102,8 +102,6 @@ for dataset in datasets:  # Iterate over the data sets
         # We only have to run one version of exact t-SNE, so we use the combination "exact" + "equal_length" (which
         # does not use the splitting property anyway since it is exact). Hence, we can skip the "equal_area" version
         # here as it does not provide more data.
-        if tsne_type == "exact" and splitting_strategy == "equal_area":
-            continue
 
         for run_n in range(RUNS):  # Run the same configuration multiple times to avaerage out random fluctuations
             # from the sampling
@@ -135,6 +133,7 @@ for dataset in datasets:  # Iterate over the data sets
                 n_iter_check=10,  # Needed for early stopping criterion
                 size_tol=0.999,  # Size of the embedding to be used as early stopping criterion
                 #angle=theta
+                polar_or_cartesian=tsne_type
             )
 
             run_dir = Path(f"{BASE_DIR}/{dataset.name}/size_{sample_size}/configuration_{config_id}/run_{run_n}/")

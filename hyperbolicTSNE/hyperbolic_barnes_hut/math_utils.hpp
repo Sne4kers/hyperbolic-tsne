@@ -67,9 +67,9 @@ namespace hyperbolic_utils {
     }
 }
 
-void add_to_file(std::string filename, double content) {
+void add_to_file(std::string filename, double content, long number_of_samples) {
     std::ofstream myfile;
-    myfile.open(filename, std::ios_base::app);
+    myfile.open(std::to_string(number_of_samples) + filename, std::ios_base::app);
     myfile << content << "\n";
     myfile.close();
 }

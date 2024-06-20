@@ -226,13 +226,23 @@ class SequentialOptimizer:
     def sequence_poincare(cls, exaggeration_its=250, exaggeration=12, gradientDescent_its=750,
                           n_iter_check=np.inf, threshold_cf=0., threshold_its=-1, threshold_check_size=-1, size_tol=None,
                           learning_rate_ex=0.1, learning_rate_main=0.1, momentum_ex=0.5, momentum=0.8, vanilla=False, exact=True, calc_both=False, angle=0.5,
-                          area_split=False, grad_fix=False, grad_scale_fix=False):
+                          area_split=False, grad_fix=False, grad_scale_fix=False, polar_or_cartesian="polar"):
         # Start with an empty sequence
-        cf_config_params = HyperbolicKL.exact_tsne() if exact else HyperbolicKL.bh_tsne()
+        cf_config_params = None
+        if exact:
+            cf_config_params = HyperbolicKL.exact_tsne() 
+        elif polar_or_cartesian == "polar":
+            cf_config_params = HyperbolicKL.bh_tsne_polar()
+        elif polar_or_cartesian == "cartesian":
+            cf_config_params = HyperbolicKL.bh_tsne_cartesian()
+        else:
+            print("TRIGGERED NO TREE TYPE")
+
+            raise ValueError("Impossible starting parameter")
         cf_config_params["params"]["calc_both"] = calc_both
         cf_config_params["params"]["area_split"] = area_split
         cf_config_params["params"]["grad_fix"] = grad_fix
-
+            
         if not exact:
             cf_config_params["params"]["angle"] = angle
 

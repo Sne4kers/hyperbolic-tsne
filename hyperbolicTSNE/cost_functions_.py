@@ -12,6 +12,7 @@ import numpy as np
 from sklearn.utils._openmp_helpers import _openmp_effective_n_threads
 
 from hyperbolicTSNE.hyperbolic_barnes_hut.tsne import gradient
+from hyperbolicTSNE.hyperbolic_barnes_hut.tsne_polar import gradient_polar
 
 MACHINE_EPSILON = np.finfo(np.double).eps
 
@@ -35,7 +36,7 @@ def check_params(params):
     general_params = ["num_threads", "verbose", "degrees_of_freedom", "calc_both", "area_split", "grad_fix"]
     if params["method"] == "exact":
         all_params = general_params + ["skip_num_points"]
-    elif params["method"] == "barnes-hut":
+    elif params["method"] == "barnes-hut-cartesian" or params["method"] == "barnes-hut-polar":
         all_params = general_params + ["angle"]
     else:
         raise ValueError("HyperbolicKL method is not a valid one (available methods are `exact` and `barnes-hut`)")
@@ -114,7 +115,7 @@ class HyperbolicKL:
         }
 
     @classmethod
-    def bh_tsne(cls, angle=0.5):
+    def bh_tsne_polar(cls, angle=0.5):
         """Parameter preset for the accelerated Hyperbolic tSNE cost function.
 
         Parameters
@@ -128,7 +129,27 @@ class HyperbolicKL:
             Cost function params in key-value format.
         """
         return {
-            "method": "barnes-hut",
+            "method": "barnes-hut-polar",
+            "params": {"angle": angle, "degrees_of_freedom": 1, "num_threads": _openmp_effective_n_threads(),
+                       "verbose": False}
+        }
+    
+    @classmethod
+    def bh_tsne_cartesian(cls, angle=0.5):
+        """Parameter preset for the accelerated Hyperbolic tSNE cost function.
+
+        Parameters
+        ----------
+        angle : float, optional
+            Degree of the approximation, by default 0.5
+
+        Returns
+        -------
+        dict
+            Cost function params in key-value format.
+        """
+        return {
+            "method": "barnes-hut-cartesian",
             "params": {"angle": angle, "degrees_of_freedom": 1, "num_threads": _openmp_effective_n_threads(),
                        "verbose": False}
         }
@@ -178,8 +199,11 @@ class HyperbolicKL:
         n_samples = V.shape[0]
         if self.params["method"] == "exact":
             return self._grad_exact(Y, V, n_samples)
-        elif self.params["method"] == "barnes-hut":
-            _, grad = self._grad_bh(Y, V, n_samples)
+        elif self.params["method"] == "barnes-hut-polar":
+            _, grad = self._grad_bh_polar(Y, V, n_samples)
+            return grad
+        elif self.params["method"] == "barnes-hut-cartesian":
+            _, grad = self._grad_bh_cartesian(Y, V, n_samples)
             return grad
 
     def obj_grad(self, Y, *, V):
@@ -204,8 +228,11 @@ class HyperbolicKL:
         if self.params["method"] == "exact":
             obj, grad = self._grad_exact(Y, V, n_samples)
             return obj, grad
-        elif self.params["method"] == "barnes-hut":
-            obj, grad = self._obj_bh(Y, V, n_samples)
+        elif self.params["method"] == "barnes-hut-polar":
+            obj, grad = self._grad_bh_polar(Y, V, n_samples)
+            return obj, grad
+        elif self.params["method"] == "barnes-hut-cartesian":
+            obj, grad = self._grad_bh_cartesian(Y, V, n_samples)
             return obj, grad
 
     ##########################
@@ -296,7 +323,7 @@ class HyperbolicKL:
         """
         return self._grad_bh(Y, V, n_samples)
 
-    def _grad_bh(self, Y, V, n_samples, save_timings=True):
+    def _grad_bh_cartesian(self, Y, V, n_samples, save_timings=True):
         """Approximate computation of the KL Divergence gradient.
 
         Parameters
@@ -315,6 +342,7 @@ class HyperbolicKL:
         ndarray
             Array (n_samples x n_components) with KL Divergence gradient values.
         """
+        print("EXECUTING CARTESIAN")
         Y = Y.astype(ctypes.c_double, copy=False)
         Y = Y.reshape(n_samples, self.n_components)
 
@@ -325,6 +353,57 @@ class HyperbolicKL:
         grad = np.zeros(Y.shape, dtype=ctypes.c_double)
         timings = np.zeros(4, dtype=ctypes.c_float)
         error = gradient(
+            timings,
+            val_V, Y, neighbors, indptr, grad,
+            self.params["params"]["angle"],
+            self.n_components,
+            self.params["params"]["verbose"],
+            dof=self.params["params"]["degrees_of_freedom"],
+            compute_error=True,
+            num_threads=self.params["params"]["num_threads"],
+            exact=False,
+            area_split=self.params["params"]["area_split"],
+            grad_fix=self.params["params"]["grad_fix"]
+        )
+
+        grad = grad.ravel()
+        grad *= 4
+
+        if save_timings:
+            self.results.append(timings)
+
+        return error, grad
+
+    def _grad_bh_polar(self, Y, V, n_samples, save_timings=True):
+        """Approximate computation of the KL Divergence gradient.
+
+        Parameters
+        ----------
+        Y : ndarray
+            Flattened low dimensional embedding of length: n_samples x n_components.
+        V : ndarray
+            High-dimensional affinity matrix (P matrix in tSNE).
+        n_samples : _type_
+            Number of samples in the embedding.
+        save_timings : bool, optional
+            If True, saves per iteration times, by default True.
+
+        Returns
+        -------
+        ndarray
+            Array (n_samples x n_components) with KL Divergence gradient values.
+        """
+        print("EXECUTING POLAR")
+        Y = Y.astype(ctypes.c_double, copy=False)
+        Y = Y.reshape(n_samples, self.n_components)
+
+        val_V = V.data
+        neighbors = V.indices.astype(np.int64, copy=False)
+        indptr = V.indptr.astype(np.int64, copy=False)
+
+        grad = np.zeros(Y.shape, dtype=ctypes.c_double)
+        timings = np.zeros(4, dtype=ctypes.c_float)
+        error = gradient_polar(
             timings,
             val_V, Y, neighbors, indptr, grad,
             self.params["params"]["angle"],

@@ -50,7 +50,7 @@ df = df[df.sample_size == maxes]
 
 # Filter to only include one instance of the exact solutions (as they all have the same results)
 exact_results = df[(df.tsne_type == "exact")].groupby(["dataset"]).first().reset_index()
-accelerated_results = df[(df.tsne_type == "accelerated") & (df.splitting_strategy == "equal_length")]
+accelerated_results = df[(df.tsne_type == "cartesian")] # & (df.splitting_strategy == "equal_length")]
 
 # Iterate over the exact solutions and compare to the various approximated ones
 for i, record in enumerate(exact_results.to_records()):

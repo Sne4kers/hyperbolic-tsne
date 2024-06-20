@@ -55,11 +55,23 @@ print(grouped["total_time"].max())
 
 # Filter out only the accelerated data, i.e., the data using the polar quad tree
 plot_times_df_accelerated = plot_times_df.copy()
-plot_times_df_accelerated = plot_times_df_accelerated[(plot_times_df_accelerated.tsne_type == "accelerated")]
+plot_times_df_accelerated = plot_times_df_accelerated[(plot_times_df_accelerated.tsne_type == "polar")]
 
 # Print Min, Avg, Std, Max of the timings per dataset per size
 grouped = plot_times_df_accelerated.groupby(["dataset", "sample_size"])
-print("Statistics accelerated:")
+print("Statistics polar:")
+print(grouped["total_time"].min())
+print(grouped["total_time"].mean())
+print(grouped["total_time"].std())
+print(grouped["total_time"].max())
+
+# Filter out only the accelerated data, i.e., the data using the polar quad tree
+plot_times_df_accelerated = plot_times_df.copy()
+plot_times_df_accelerated = plot_times_df_accelerated[(plot_times_df_accelerated.tsne_type == "cartesian")]
+
+# Print Min, Avg, Std, Max of the timings per dataset per size
+grouped = plot_times_df_accelerated.groupby(["dataset", "sample_size"])
+print("Statistics cartesian:")
 print(grouped["total_time"].min())
 print(grouped["total_time"].mean())
 print(grouped["total_time"].std())
