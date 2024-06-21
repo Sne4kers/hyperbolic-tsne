@@ -53,14 +53,14 @@ theta=0.7
 
 # Variables
 datasets = [
-    # Datasets.LUKK,
+    Datasets.LUKK,
     # Datasets.MYELOID8000,
     # Datasets.PLANARIA,
     # Datasets.MNIST,
     # Datasets.C_ELEGANS,
-    Datasets.WORDNET
+    # Datasets.WORDNET
 ]
-tsne_types = ["polar", "cartesian"]  # the type "accelerated" uses the polar quad tree for acceleration, "exact"
+tsne_types = ["polar", "cartesian", "exact"]  # the type "accelerated" uses the polar quad tree for acceleration, "exact"
 # uses no acceleration and runs in quadratic time per iteration
 splitting_strategies = ["equal_length"]  # the polar quad tree comes in two flavors: Splitting by equal
 # area and by equal length in the embedding space. The "equal_length" splitting shows better performance in our

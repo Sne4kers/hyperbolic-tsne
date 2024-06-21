@@ -50,6 +50,11 @@ struct Cell{
             Point b = Point{min_bounds.y, max_bounds.x};
 
             contains_infinity = false;
-            max_distance_within_squared = std::numeric_limits<double>::infinity();
+            max_distance_within_squared = fmax(
+                fmax(a.distance_to_point_poincare(b), min_bounds.distance_to_point_poincare(max_bounds)),
+                fmax(fmax(a.distance_to_point_poincare(min_bounds), min_bounds.distance_to_point_poincare(b)),
+                fmax(a.distance_to_point_poincare(max_bounds), max_bounds.distance_to_point_poincare(b)))
+                );
+            max_distance_within_squared *= max_distance_within_squared;
         }
 };

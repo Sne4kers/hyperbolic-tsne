@@ -84,19 +84,19 @@ private:
             + (child2_idx == -1 ? Point{0, 0} : (_nodes[child2_idx].barycenter.to_klein() * _nodes[child2_idx].lorentz_factor))
             + (child3_idx == -1 ? Point{0, 0} : (_nodes[child3_idx].barycenter.to_klein() * _nodes[child3_idx].lorentz_factor))) / new_lorentz_factor;
 
-        double new_max_distance_within_cell = 0;
+        // double new_max_distance_within_cell = 0;
 
-        for(int i = 0; i < 4; ++i) {
-            for(int j = i + 1; j < 4; ++j) {
-                if (_nodes[result_idx].children_idx[i] == -1 || _nodes[result_idx].children_idx[j] == -1) {
-                    continue;
-                }
-                new_max_distance_within_cell = std::max(new_max_distance_within_cell, 
-                _nodes[_nodes[result_idx].children_idx[i]].barycenter.distance_to_point_poincare(_nodes[_nodes[result_idx].children_idx[j]].barycenter)
-                );
-            }
-        }
-        _nodes[result_idx].max_distance_within_squared = new_max_distance_within_cell * new_max_distance_within_cell;
+        // for(int i = 0; i < 4; ++i) {
+        //     for(int j = i + 1; j < 4; ++j) {
+        //         if (_nodes[result_idx].children_idx[i] == -1 || _nodes[result_idx].children_idx[j] == -1) {
+        //             continue;
+        //         }
+        //         new_max_distance_within_cell = std::max(new_max_distance_within_cell, 
+        //         _nodes[_nodes[result_idx].children_idx[i]].barycenter.distance_to_point_poincare(_nodes[_nodes[result_idx].children_idx[j]].barycenter)
+        //         );
+        //     }
+        // }
+        // _nodes[result_idx].max_distance_within_squared = new_max_distance_within_cell * new_max_distance_within_cell;
 
         _nodes[result_idx].barycenter = new_barycenter_klein.to_poincare();
         _nodes[result_idx].lorentz_factor = new_lorentz_factor;

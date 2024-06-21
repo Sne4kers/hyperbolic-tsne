@@ -44,7 +44,7 @@ opt_config = dict(
     area_split=False,  # To build or not build the polar quad tree based on equal area splitting or - alternatively - on equal length splitting
     n_iter_check=40,  # Needed for early stopping criterion
     size_tol=0.999,  # Size of the embedding to be used as early stopping criterion
-    polar_or_cartesian="cartesian"
+    polar_or_cartesian="polar"
 )
 
 opt_params = SequentialOptimizer.sequence_poincare(**opt_config)
