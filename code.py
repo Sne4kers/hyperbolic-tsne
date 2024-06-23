@@ -1,3 +1,10 @@
+"""
+First, we import the packages we will use and set important paths.
+Note that `hyperbolicTSNE.util` and `hyperbolicTSNE.visualization` contain
+useful functions for reading, processing and exporting embeddings.
+This requires that hyperbolicTSNE has been set up as detailed in the main readme of the repository.
+"""
+
 import os
 import traceback
 
@@ -5,14 +12,26 @@ from hyperbolicTSNE.util import find_last_embedding
 from hyperbolicTSNE.visualization import plot_poincare, animate
 from hyperbolicTSNE import load_data, Datasets, SequentialOptimizer, initialization, HyperbolicTSNE
 
+"""
+We assume that there is a top-level folder datasets that holds the MNIST data set.
+Refer to the main readme of the repository for where to find the data sets used in this repository.
+"""
+
 data_home = "datasets"
 log_path = "temp/poincare/"  # path for saving embedding snapshots
 
 only_animate = False
 seed = 42
-dataset = Datasets.C_ELEGANS  # the Datasets handler provides access to several data sets used throughout the repository
+dataset = Datasets.MNIST  # the Datasets handler provides access to several data sets used throughout the repository
 num_points = 10000  # we use a subset for demonstration purposes, full MNIST has N=70000
 perp = 30  # we use a perplexity of 30 in this example
+
+"""
+HyperbolicTSNE follows a similar API to other t-SNE libraries like OpenTSNE and sklearn.
+The configuration process consists of loading the data to embed and defining the settings of the embedder.
+We create a dict with parameters manually to demonstrate all the customization options.
+Nevertheless, `hyperbolicTSNE.hyperbolicTSNE` provides parameter templates to start with.
+"""
 
 dataX, dataLabels, D, V, _ = load_data(
     dataset,
@@ -64,6 +83,20 @@ if os.path.exists(log_path) and not only_animate:
 
 print(f"config: {opt_config}")
 
+"""
+Run HyperbolicTSNE
+
+Embedding the high dimensional data consists of three steps:
+
+    Initializating the embedding
+    Initializing the embedder
+    Embedding the data
+
+The following three cells demonstrate this process.
+Note that use set metric to "precomputed" because we pass the distance matrix to the fit method.
+
+"""
+
 # Compute an initial embedding of the data via PCA
 X_embedded = initialization(
     n_samples=dataX.shape[0],
@@ -89,6 +122,12 @@ try:
 except ValueError:
     hyperbolicEmbedding = find_last_embedding(log_path)
     traceback.print_exc()
+
+"""
+After running the embedding process, the embeddings arrays are saved to the log_path.
+We can use this information to visualize the embeddings using utility functions defined
+in hyperbolicTSNE.visualization as shown below.
+"""
 
 # Create a rendering of the embedding and save it to a file
 if not os.path.exists("results"):
