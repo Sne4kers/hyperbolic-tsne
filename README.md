@@ -2,7 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-This repository contains the code for the paper on aaplication of the Cartesian quadtree for Barnes-Hut approximation for hyperbolic t-SNE. This is a fork of the original repository on the polar quadtree implementation distributed under MIT license and contains code unrelated to the Cartesian quadtree.
+This repository contains the code for the paper on application of the Cartesian quadtree for Barnes-Hut approximation for hyperbolic t-SNE. This is a fork of the original repository on the polar quadtree implementation distributed under MIT license and contains code unrelated to the Cartesian quadtree.
 
 ## Setup
 
