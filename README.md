@@ -24,7 +24,7 @@ The main consequence of this error is that the optimization iterations run slowe
 
 ## Use
 
-In order to run either polar, cartesian `polar_or_cartesian="polar"` should be set to "cartesian" or "cartesian" respectively.
+In order to run either polar, cartesian `polar_or_cartesian="polar"` should be set to `"polar"` or `"cartesian"` respectively.
 Look at the examples in `code.py`.
 
 ## Data
